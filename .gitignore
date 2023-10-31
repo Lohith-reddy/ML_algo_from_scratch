@@ -1,5 +1,5 @@
-# created by virtualenv automatically
+
 lin/venv/
-venv/
-.idea/ # created by PyCharm automatically
+venv/ # created by PyCharm automatically
 lin/.idea/
+.idea/
