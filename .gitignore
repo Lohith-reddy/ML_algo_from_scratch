@@ -2,3 +2,4 @@
 lin/venv/
 venv/
 .idea/ # created by PyCharm automatically
+lin/.idea/
