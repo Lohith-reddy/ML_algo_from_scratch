@@ -1,6 +1,7 @@
 import numpy as np
 import helper
 
+
 class LinReg:
     """
     This class implements the linear regression model
@@ -66,10 +67,11 @@ class LinReg:
         self.alpha = alpha
         self.intercept = intercept
         self.method = method
-        self.x = helper.check_if_oned(self.x) # check if the independent variable is one dimensional, if so, reshapes it.
+        self.x = helper.check_if_oned(
+            self.x)  # check if the independent variable is one dimensional, if so, reshapes it.
         if self.method == "OLS":
             if self.x.size < 50000:
-                return self.fit_ols(x=self.x, y=self.y, verbose = self.verbose)
+                return self.fit_ols(x=self.x, y=self.y, verbose=self.verbose)
             else:
                 raise AssertionError("The data is too large for OLS method. Consider using gradient descent method")
         elif self.method == "GD":
@@ -81,7 +83,7 @@ class LinReg:
                 print("Initializing")
             return self.fit_MLE(self.x, self.y)
 
-    def fit_gd(self, x, y, verbose= False, alpha=0.01, max_iter=100, intercept=False, max_alpha=None,
+    def fit_gd(self, x, y, verbose=False, alpha=0.01, max_iter=100, intercept=False, max_alpha=None,
                min_alpha=None):
         """
         calculates the coefficients using gradient descent method.
@@ -125,10 +127,38 @@ class LinReg:
             self.history.update(self.cal_metrics())
         if self.verbose:
             self.summary()
-            return print("The model has been fitted successfully")
-        return
+            return print(f"The model has been fitted successfully with r squared: {self.r2}")
+        return self.r2_adj
 
-    def fit_ols(self, x, y, verbose=False,intercept=False):
+    def fit_MLE(self, x, y, verbose=False, intercept=False):
+        self.x = x
+        self.y = y
+        self.verbose = verbose
+        self.x = helper.check_if_oned(self.x)
+        print("Using MLE method to find the solution")
+        self.model_method = "MLE"
+        # calculating the beta
+        # Calculate the mean of X and y
+        self.x_mean = np.mean(self.x)
+        self.y_mean = np.mean(self.y)
+
+        # Calculate the slope (coefficient)
+        numerator = np.sum((self.x - self.x_mean) * (self.y - self.y_mean))
+        denominator = np.sum((self.x - self.x_mean) ** 2)
+        if denominator == 0:
+            raise ValueError("Denominator is zero. Check your data.")
+        self.slope = numerator / (denominator)
+        print(self.slope)
+        # Calculate the intercept
+        self.bias = self.y_mean - (self.slope * self.x_mean)
+        self.beta = [self.bias] + self.slope
+        self.cal_metrics()
+        if self.verbose:
+            self.summary()
+            return print(f"The model has been fitted successfully with r squared: {self.r2}")
+        return self.r2_adj
+
+    def fit_ols(self, x, y, verbose=False, intercept=False):
         self.x = x
         self.y = y
         self.verbose = verbose
@@ -145,8 +175,8 @@ class LinReg:
         self.cal_metrics()
         if self.verbose:
             self.summary()
-            return print("The model has been fitted successfully")
-        return  
+            return print(f"The model has been fitted successfully with r squared: {self.r2}")
+        return self.r2_adj
 
     def predict(self, x):
         # sample prediction
@@ -177,7 +207,7 @@ class LinReg:
             self.y_mean = np.mean(self.y)
         self.y_pred_mean = np.mean(self.y_hat)
         self.tss = np.sum((self.y - self.y_mean) ** 2)
-        self.rss = np.sum((self.y - self.y_hat)**2)
+        self.rss = np.sum((self.y - self.y_hat) ** 2)
         self.r2 = 1 - (self.rss / self.tss)
         # calculating the adjusted r2 score
         self.r2_adj = 1 - (1 - self.r2) * (len(self.y) - 1) / (len(self.y) - self.x.shape[1] - 1)
