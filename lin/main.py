@@ -1,6 +1,5 @@
 import numpy as np
-from helper import add_intercept
-
+import helper
 
 class LinReg:
     """
@@ -42,10 +41,11 @@ class LinReg:
         self.xtx_inv = None
         self.xty = None
         self.intercept = None
+        self.y_mean = None
         # Add metaclass to return warning when user tries to access these variables before fitting the model
         return
 
-    def fit(self, x, y, intercept="False", verbose='False', method="OLS", alpha=0.01, max_iter=100, ):
+    def fit(self, x, y, intercept=False, verbose=False, method="OLS", alpha=0.01, max_iter=100):
         """
         :param x: independent variables
         :param y: target variable
@@ -65,19 +65,23 @@ class LinReg:
         self.max_iter = max_iter
         self.alpha = alpha
         self.intercept = intercept
-        if method == "OLS":
+        self.method = method
+        self.x = helper.check_if_oned(self.x) # check if the independent variable is one dimensional, if so, reshapes it.
+        if self.method == "OLS":
             if self.x.size < 50000:
-                if self.verbose:
-                    print("Using OLS method to find the solution")
-                return self.fit_ols(self, self.x, self.y)
+                return self.fit_ols(x=self.x, y=self.y, verbose = self.verbose)
             else:
                 raise AssertionError("The data is too large for OLS method. Consider using gradient descent method")
-        elif method == "GD":
+        elif self.method == "GD":
             if self.verbose:
                 print("Using gradient descent method to find the solution")
-            return self.fit_gd(self, self.x, self.y)
+            return self.fit_gd(self.x, self.y)
+        elif self.method == "MLE":
+            if self.verbose:
+                print("Initializing")
+            return self.fit_MLE(self.x, self.y)
 
-    def fit_gd(self, x, y, verbose='False', alpha=0.01, max_iter=100, intercept="False", max_alpha=None,
+    def fit_gd(self, x, y, verbose= False, alpha=0.01, max_iter=100, intercept=False, max_alpha=None,
                min_alpha=None):
         """
         calculates the coefficients using gradient descent method.
@@ -92,16 +96,17 @@ class LinReg:
         :param min_alpha:
         :return:
         """
-
+        self.verbose = verbose
         self.alpha = alpha
         self.max_iter = max_iter
         self.max_alpha = max_alpha
         self.min_alpha = min_alpha
+        self.x = helper.check_if_oned(self.x)
         # re-initialising self.x in case user uses fit_gd() directly
         self.x = x
         if not intercept:
-            self.x = add_intercept(self.x)
-        if verbose:
+            self.x = helper.add_intercept(self.x)
+        if self.verbose:
             print("Using gradient descent method to find the solution")
         self.beta = np.zeros(x.shape[1])
         self.history = {}
@@ -118,12 +123,18 @@ class LinReg:
             self.beta = self.beta - self.alpha * self.diff_w
             # bias is also updated. The intercept allows automatic calculation
             self.history.update(self.cal_metrics())
-        if verbose:
+        if self.verbose:
             self.summary()
             return print("The model has been fitted successfully")
         return
 
-    def fit_ols(self, x, y, verbose='False'):
+    def fit_ols(self, x, y, verbose=False,intercept=False):
+        self.x = x
+        self.y = y
+        self.verbose = verbose
+        self.x = helper.check_if_oned(self.x)
+        if not self.intercept:
+            self.x = helper.add_intercept(self.x)
         print("Using OLS method to find the solution")
         self.model_method = "OLS"
         # calculating the beta
@@ -131,10 +142,11 @@ class LinReg:
         xtx_inv = np.linalg.inv(xtx)
         xty = np.dot(self.x.T, self.y)
         self.beta = np.dot(xtx_inv, xty)
-        if verbose:
+        self.cal_metrics()
+        if self.verbose:
             self.summary()
             return print("The model has been fitted successfully")
-        return
+        return  
 
     def predict(self, x):
         # sample prediction
@@ -144,7 +156,7 @@ class LinReg:
     def summary(self):
         print(f"The model has been fitted successfully with {self.model_method}")
         print("The coefficients are: ", self.beta)
-        print("The residuals are: ", self.residuals)
+        # print("The residuals are: ", self.residuals)
         print("The mean squared error is: ", self.mse)
         print("The root mean squared error is: ", self.rmse)
         print("The r2 score is: ", self.r2)
@@ -159,8 +171,14 @@ class LinReg:
         self.mse = np.mean(self.residuals ** 2)
         # calculating the root mean squared error
         self.rmse = np.sqrt(self.mse)
+
         # calculating the r2 score
-        self.r2 = 1 - (np.var(self.residuals) / np.var(self.y))
+        if self.y_mean is None:
+            self.y_mean = np.mean(self.y)
+        self.y_pred_mean = np.mean(self.y_hat)
+        self.tss = np.sum((self.y - self.y_mean) ** 2)
+        self.rss = np.sum((self.y - self.y_hat)**2)
+        self.r2 = 1 - (self.rss / self.tss)
         # calculating the adjusted r2 score
         self.r2_adj = 1 - (1 - self.r2) * (len(self.y) - 1) / (len(self.y) - self.x.shape[1] - 1)
 
