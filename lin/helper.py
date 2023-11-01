@@ -15,3 +15,10 @@ def check_if_oned(x):
     else:
         return x
     
+def calculate_aic(n, mse, num_params):
+    aic = (n * log(mse) + 2 * num_params)
+    return aic
+
+def calculate_bic(n, mse, num_params):
+	bic = n * log(mse) + num_params * log(n)
+	return bic
