@@ -4,3 +4,5 @@ venv/ # created by PyCharm automatically
 lin/.idea/
 .idea/
 data/
+__pycache__/
+```
