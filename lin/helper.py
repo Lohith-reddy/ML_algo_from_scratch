@@ -1,6 +1,13 @@
 import numpy as np
 
 
+def initialize_weights(n_features):
+    """ Initialize weights randomly [-1/N, 1/N] """
+
+    limit = 1 / math.sqrt(n_features)
+    beta = np.random.uniform(-limit, limit, (n_features,))
+    return beta
+
 def normalise(x):
     for i in range(x.shape[1]):
         print(f"normalising {i}th column")

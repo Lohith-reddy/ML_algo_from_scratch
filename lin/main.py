@@ -21,6 +21,7 @@ class LinReg:
 
     def __init__(self):
 
+        self.bias = None
         self.y = None
         self.x = None
         self.beta = None
@@ -48,6 +49,9 @@ class LinReg:
         self._bic = None
         # Add metaclass to return warning when user tries to access these variables before fitting the model
         return
+
+
+
 
     def fit(self, x, y, intercept=False, verbose=False, method="OLS", alpha=0.01, max_iter=100):
         """
@@ -80,7 +84,7 @@ class LinReg:
         elif self.method == "GD":
             if self.verbose:
                 print("Using gradient descent method to find the solution")
-            return self.fit_gd(self.x, self.y,verbose = True)
+            return self.fit_gd(self.x, self.y, verbose=True)
         elif self.method == "MLE":
             if self.verbose:
                 print("Initializing")
@@ -119,7 +123,7 @@ class LinReg:
         if self.verbose:
             print("Using gradient descent method to find the solution")
 
-        self.beta = np.zeros((self.x.shape[1],1))
+        self.beta = helper.initialize_weights(self.x.shape[1])
 
         for i in range(self.max_iter):
             """if self.max_alpha is not None:
@@ -127,16 +131,16 @@ class LinReg:
                     self.alpha = self.min_alpha
                 else:
                     self.alpha = self.max_alpha"""
-            
+
             self.y_hat = np.dot(self.x, self.beta)
-            self.residuals = self.y - self.y_hat
+            self.residuals = self.y_hat - self.y
             # print(f"residuals: {self.residuals}")
-            self.diff_w = (-2 / len(x)) * np.dot(self.x.T, self.residuals)
+            self.diff_w = -(self.y - self.y_hat).dot(self.x)
             self.beta = self.beta - (self.alpha * self.diff_w)
-            if i%100==0:
+            if i % 100 == 0:
                 print(self.beta)
             # bias is also updated. The intercept allows automatic calculation
-            #self.history.update(self._cal_metrics())
+            # self.history.update(self._cal_metrics())
 
         if self.verbose:
             self._cal_metrics()
@@ -187,11 +191,8 @@ class LinReg:
             self.x = helper.add_intercept(self.x)
         print("Using OLS method to find the solution")
         self.model_method = "OLS"
-        # calculating the beta
-        xtx = np.dot(self.x.T, self.x)
-        if np.linalg.det(xtx) == 0:
-            raise ValueError("Matrix X'X is singular and cannot be inverted.")
-        xtx_inv = np.linalg.inv(xtx)
+        # using Moore-Penrose pseudo-inverse to calculate the inverse of xtx
+        xtx_inv = np.linalg.pinv(np.dot(self.x.T, self.x))
         xty = np.dot(self.x.T, self.y)
         self.beta = np.dot(xtx_inv, xty)
         self._cal_metrics()
@@ -218,7 +219,7 @@ class LinReg:
 
     def _cal_metrics(self):
         # Calculate metrics like MSE, RMSE, R-squared, adjusted R-squared, TSS, RSS, etc.
-        
+
         if self.y_hat is None:
             self.y_hat = np.dot(self.x, self.beta)
         if self.residuals is None:
