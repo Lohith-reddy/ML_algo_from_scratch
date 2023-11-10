@@ -53,7 +53,7 @@ class LinReg:
 
 
 
-    def fit(self, x, y, intercept=False, verbose=False, method="OLS", alpha=0.01, max_iter=100):
+    def fit(self, x, y, intercept=False, verbose=False, method="MLE", alpha=0.01, max_iter=100):
         """
         :param x: independent variables
         :param y: target variable
@@ -76,19 +76,60 @@ class LinReg:
         self.method = method
         self.x = helper.check_if_oned(
             self.x)  # check if the independent variable is one dimensional, if so, reshapes it.
-        if self.method == "OLS":
+        if self.method == "ols":
             if self.x.size < 50000:
                 return self.fit_ols(x=self.x, y=self.y, verbose=self.verbose)
             else:
                 raise AssertionError("The data is too large for OLS method. Consider using gradient descent method")
-        elif self.method == "GD":
+        elif self.method == "gd":
             if self.verbose:
                 print("Using gradient descent method to find the solution")
-            return self.fit_gd(self.x, self.y, verbose=True)
-        elif self.method == "MLE":
+            return self.fit_gd(self.x, self.y, verbose = self.verbose, alpha=self.alpha, max_iter=self.max_iter)
+        elif self.method in ["poisson","exponential","gamma"]:
             if self.verbose:
                 print("Initializing")
-            return self.fit_mle(self.x, self.y)
+            return self.fit_mle(self.x, self.y, method = self.method, verbose= self.verbose)
+
+    def fit_ols(self, x, y, verbose=False, intercept=False):
+        self.x = x
+        self.y = y
+        self.verbose = verbose
+        self.x = helper.check_if_oned(self.x)
+        if not self.intercept:
+            self.x = helper.add_intercept(self.x)
+        if size(self.x) > 50000:
+            print("The data is too large for OLS method. Consider using gradient descent method")
+            self.fit_gd(self.x, self.y, verbose=True)
+            return self
+        # print("Using OLS method to find the solution")
+        self.model_method = "OLS"
+        # using Moore-Penrose pseudo-inverse to calculate the inverse of xtx
+        u, s, v= np.linalg.svd(np.dot(self.x.T, self.x))
+        s = np.diag(s)
+        x_sq_reg_inv = V.dot(np.linalg.pinv(s)).dot(U.T)
+        self.beta = x_sq_reg_inv.dot(self.x.T).dot(self.y)
+
+        self._cal_metrics()
+        self._verbose_print()
+        return self
+
+    def fit_mle(self, x, y, verbose=False, intercept=False, method="poisson"):
+        if method == "gamma":
+            d_cost_function =
+            return d_cost_function
+        elif method == "poisson":
+            d_cost_function =
+            return d_cost_function
+        elif method == "exponential":
+            d_cost_function =
+            return d_cost_function
+        self.x = x
+        self.y = y
+        self.verbose = verbose
+        self.x = helper.check_if_oned(self.x)
+
+
+
 
     def fit_gd(self, x, y, verbose=False, alpha=0.001, max_iter=100, intercept=False, max_alpha=None,
                min_alpha=None):
@@ -142,66 +183,15 @@ class LinReg:
             # bias is also updated. The intercept allows automatic calculation
             # self.history.update(self._cal_metrics())
 
-        if self.verbose:
-            self._cal_metrics()
-            self.summary()
-            print(f"The model has been fitted successfully with r squared: {self._r2}")
-            return self
+        self._verbose_print()
         return self
 
-    def fit_mle(self, x, y, verbose=False, intercept=False):
-        self.x = x
-        self.y = y
-        self.verbose = verbose
-        self.x = helper.check_if_oned(self.x)
-        if not self.x.shape[1] == 1:
-            return self.fit_ols(self.x, self.y, verbose=self.verbose, intercept=self.intercept)
-        else:
-            self.model_method = "MLE"
-            # calculating the beta
-            # Calculate the mean of X and y
-            if np.isnan(self.x).any():
-                raise ValueError("X contains NaN values. Please check your data")
-            self.x_mean = np.mean(self.x)
-            self.y_mean = np.mean(self.y)
-            # print(self.x_mean, self.y_mean)
-            # Calculate the slope (coefficient)
-            numerator = np.sum((self.x - self.x_mean) * (self.y - self.y_mean))
-            denominator = np.sum((self.x - self.x_mean) ** 2)
-            # if denominator == 0:
-            #    raise ValueError("Denominator is zero. Check your data.")
-            self.slope = (numerator / (denominator))
-            print(self.slope)
-            # Calculate the intercept
-            self.bias = self.y_mean - (self.slope * self.x_mean)
-            self.beta = [self.bias].extend(self.slope)
-            self._cal_metrics()
-            if self.verbose:
-                self.summary()
-                print(f"The model has been fitted successfully with r squared: {self._r2}")
-                return self
-            return self
-
-    def fit_ols(self, x, y, verbose=False, intercept=False):
-        self.x = x
-        self.y = y
-        self.verbose = verbose
-        self.x = helper.check_if_oned(self.x)
-        if not self.intercept:
-            self.x = helper.add_intercept(self.x)
-        print("Using OLS method to find the solution")
-        self.model_method = "OLS"
-        # using Moore-Penrose pseudo-inverse to calculate the inverse of xtx
-        xtx_inv = np.linalg.pinv(np.dot(self.x.T, self.x))
-        xty = np.dot(self.x.T, self.y)
-        self.beta = np.dot(xtx_inv, xty)
-        self._cal_metrics()
+    def _verbose_print(self):
         if self.verbose:
             self.summary()
             print(f"The model has been fitted successfully with r squared: {self._r2}")
-            return self
-        return self
 
+    @staticmethod
     def predict(self, x):
         # sample prediction
         pred = np.dot(self.x, self.beta)
