@@ -1,7 +1,7 @@
 
-lin/venv/
+linear_regression/venv/
 venv/ # created by PyCharm automatically
-lin/.idea/
+linear_regression/.idea/
 .idea/
 data/
 __pycache__/
