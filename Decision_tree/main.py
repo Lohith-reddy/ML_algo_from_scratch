@@ -96,19 +96,3 @@ class DecisionTree:
                 return self._predict_tree(x, tree['right'])
 
 
-# Example usage
-if __name__ == "__main__":
-    # Generate a synthetic dataset
-    np.random.seed(42)
-    X = np.random.rand(100, 2)
-    y = (X[:, 0] + X[:, 1] > 1).astype(int)
-
-    # Train the decision tree
-    tree = DecisionTree(max_depth=3)
-    tree.fit(X, y)
-
-    # Make predictions
-    new_data = np.array([[0.5, 0.6], [0.8, 0.2]])
-    predictions = tree.predict(new_data)
-
-    print("Predictions:", predictions)
